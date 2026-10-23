@@ -1,5 +1,6 @@
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.*;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -334,7 +335,12 @@ public class Editor extends JFrame {
                 try {
                     Ponto figura = figuras.getDado(i);
                     Graphics2D g2 = (Graphics2D) g.create();
-                    if (selecionadas.contains(i)) g2.setStroke(new BasicStroke(3.0f));
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    if (selecionadas.contains(i)) {
+                        g2.setStroke(new BasicStroke(7.0f));
+                        figura.desenhar(figura.getCor(), g2);
+                    }
+                    g2.setStroke(new BasicStroke(1.5f));
                     figura.desenhar(figura.getCor(), g2);
                     g2.dispose();
                 } catch (Exception ex) {
