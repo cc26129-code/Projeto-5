@@ -35,7 +35,7 @@ public class Ponto {
 
     public void desenhar(Color corDesenho, Graphics g) {
         g.setColor(corDesenho);
-        g.drawLine(x, y, x, y);
+        g.fillOval(x - 2, y - 2, 5, 5);
     }
 
     public String toString() {
