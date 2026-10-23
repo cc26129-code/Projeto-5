@@ -214,6 +214,7 @@ public class Editor extends JFrame {
                 @Override public void mouseMoved(MouseEvent e) {
                     status.setText("Mensagem: " + (modo.isEmpty() ? "pronto" : modo)
                             + " | Coordenada: " + e.getX() + ", " + e.getY());
+                    if ("polilinha".equals(modo)) repaint();
                 }
             });
         }
@@ -260,10 +261,18 @@ public class Editor extends JFrame {
                         break;
                     case "polilinha":
                         if (e.getClickCount() >= 2) {
-                            if (pontosPolilinha.size() >= 2)
+                            if (pontosPolilinha.isEmpty()
+                                    || pontosPolilinha.get(pontosPolilinha.size() - 1).getX() != x
+                                    || pontosPolilinha.get(pontosPolilinha.size() - 1).getY() != y) {
+                                pontosPolilinha.add(new Ponto(x, y, corAtual));
+                            }
+                            if (pontosPolilinha.size() >= 2) {
                                 figuras.incluirAoFinal(new Polilinha(pontosPolilinha, corAtual));
-                            else mensagem("Uma polilinha precisa de pelo menos dois pontos.");
-                            finalizarModo();
+                                finalizarModo();
+                            } else {
+                                mensagem("Uma polilinha precisa de pelo menos dois pontos.");
+                                status.setText("Mensagem: clique em mais pontos para continuar a polilinha.");
+                            }
                         } else {
                             pontosPolilinha.add(new Ponto(x, y, corAtual));
                             status.setText("Mensagem: ponto adicionado à polilinha. Duplo clique para terminar.");
