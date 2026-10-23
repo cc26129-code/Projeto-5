@@ -81,22 +81,9 @@ public class Editor extends JFrame {
             mensagem("Não há figuras para selecionar.");
             return;
         }
-        String entrada = JOptionPane.showInputDialog(this,
-                "Digite o índice da figura (0 a " + (figuras.tamanho() - 1) + "):",
-                "Selecionar figura", JOptionPane.QUESTION_MESSAGE);
-        if (entrada == null) return;
-        try {
-            int indice = Integer.parseInt(entrada.trim());
-            if (indice < 0 || indice >= figuras.tamanho()) {
-                mensagem("Índice fora dos limites.");
-                return;
-            }
-            if (!selecionadas.contains(indice)) selecionadas.add(indice);
-            status.setText("Mensagem: figura " + indice + " selecionada.");
-            pnlDesenho.repaint();
-        } catch (NumberFormatException ex) {
-            mensagem("Digite um índice inteiro válido.");
-        }
+        modo = "selecionar";
+        pontoInicial = null;
+        status.setText("Mensagem: clique diretamente em uma figura para selecioná-la.");
     }
 
     private void mudarCorSelecionadas() {
@@ -224,6 +211,20 @@ public class Editor extends JFrame {
         private void tratarClique(MouseEvent e) {
             int x = e.getX(), y = e.getY();
             try {
+                if ("selecionar".equals(modo)) {
+                    int indice = encontrarFigura(x, y);
+                    if (indice < 0) {
+                        status.setText("Mensagem: nenhuma figura encontrada nesse local.");
+                    } else if (selecionadas.contains(indice)) {
+                        selecionadas.remove(Integer.valueOf(indice));
+                        status.setText("Mensagem: figura desmarcada.");
+                    } else {
+                        selecionadas.add(indice);
+                        status.setText("Mensagem: figura " + (indice + 1) + " selecionada.");
+                    }
+                    repaint();
+                    return;
+                }
                 switch (modo) {
                     case "ponto":
                         figuras.incluirAoFinal(new Ponto(x, y, corAtual));
@@ -284,6 +285,40 @@ public class Editor extends JFrame {
                 }
                 repaint();
             } catch (Exception ex) { mensagem("Não foi possível criar a figura: " + ex.getMessage()); }
+        }
+
+        private int encontrarFigura(int x, int y) {
+            for (int i = figuras.tamanho() - 1; i >= 0; i--) {
+                try {
+                    Ponto f = figuras.getDado(i);
+                    double tol = 7.0;
+                    if (f instanceof Linha) {
+                        Linha l = (Linha) f;
+                        if (Line2D.ptSegDist(l.getX(), l.getY(), l.getXFinal(), l.getYFinal(), x, y) <= tol) return i;
+                    } else if (f instanceof Circulo) {
+                        Circulo c = (Circulo) f;
+                        double d = Point2D.distance(x, y, f.getX(), f.getY());
+                        if (Math.abs(d - c.getRaio()) <= tol) return i;
+                    } else if (f instanceof Oval) {
+                        Oval o = (Oval) f;
+                        double nx = (x - f.getX()) / (double) o.getRaioA();
+                        double ny = (y - f.getY()) / (double) o.getRaioB();
+                        if (Math.abs(nx * nx + ny * ny - 1) <= 0.25) return i;
+                    } else if (f instanceof Retangulo) {
+                        Retangulo r = (Retangulo) f;
+                        Rectangle2D area = new Rectangle2D.Double(f.getX() - tol, f.getY() - tol,
+                                r.getLargura() + 2 * tol, r.getAltura() + 2 * tol);
+                        if (area.contains(x, y)) return i;
+                    } else if (f instanceof Polilinha) {
+                        List<Ponto> ps = ((Polilinha) f).getPontos();
+                        for (int j = 1; j < ps.size(); j++) {
+                            Ponto a = ps.get(j - 1), b = ps.get(j);
+                            if (Line2D.ptSegDist(a.getX(), a.getY(), b.getX(), b.getY(), x, y) <= tol) return i;
+                        }
+                    } else if (Point2D.distance(x, y, f.getX(), f.getY()) <= 9.0) return i;
+                } catch (Exception ignored) { }
+            }
+            return -1;
         }
 
         private void finalizarModo() {
