@@ -1,186 +1,125 @@
-import java.awt.*;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.awt.Color;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class VetorPonto implements ManterVetor
-{
+public class VetorPonto implements ManterVetor {
     private Ponto[] figuras;
-    private int quantosDados,
-                posicaoAtual,
-                tamanhoFisico;
+    private int quantosDados, posicaoAtual, tamanhoFisico;
 
-    public VetorPonto(int tamanhoDesejado)
-    {
-        figuras = new Ponto[tamanhoDesejado];
-        tamanhoFisico = tamanhoDesejado;
+    public VetorPonto(int tamanhoDesejado) {
+        tamanhoFisico = Math.max(1, tamanhoDesejado);
+        figuras = new Ponto[tamanhoFisico];
         quantosDados = 0;
-        posicaoAtual = -1;  // nenhuma posição visitada
+        posicaoAtual = -1;
     }
 
-    public int tamanho()
-    {
-        return quantosDados;
-    }
+    public int tamanho() { return quantosDados; }
 
-    private void expandirVetor()
-    {
+    private void expandirVetor() {
         tamanhoFisico += 10;
-        var vetorMaior = Arrays.copyOf(figuras, tamanhoFisico);
-
-        // ou, para criar e copiar com código:
-        // var vetorMaior = new Ponto[tamanhoFisico];
-        // for (int i = 0; i < quantosDados; i++)
-        //    vetorMaior[i] = figuras[i];
-
-        figuras = vetorMaior;
+        figuras = Arrays.copyOf(figuras, tamanhoFisico);
     }
 
-    @Override
     public void incluirAoFinal(Ponto novo) {
-        if (quantosDados >= tamanhoFisico)
-           expandirVetor();
-
+        if (quantosDados >= tamanhoFisico) expandirVetor();
         figuras[quantosDados++] = novo;
     }
 
-    @Override
-    public void excluir(int posicaoDeExclusao) throws Exception {
-        if (posicaoDeExclusao < 0 || posicaoDeExclusao >= quantosDados)
-            throw new Exception("Exclusão fora dos limites do vetor.");
-
-        quantosDados--;
-        for (int i = posicaoDeExclusao; i < quantosDados; i++)
-            figuras[i] = figuras[i+1];
+    public void excluir(int posicao) throws Exception {
+        if (posicao < 0 || posicao >= quantosDados) throw new Exception("Índice fora dos limites.");
+        for (int i = posicao; i < quantosDados - 1; i++) figuras[i] = figuras[i + 1];
+        figuras[--quantosDados] = null;
     }
 
-    @Override
+    public void limpar() {
+        Arrays.fill(figuras, 0, quantosDados, null);
+        quantosDados = 0;
+        posicaoAtual = -1;
+    }
+
     public boolean existe(Ponto procurado) {
-        boolean achou = false;
-        for (int i = 0; i < quantosDados && !achou; i++)
-            if (figuras[i].getX() == procurado.getX() &&
-                figuras[i].getY() == procurado.getY())
-            {
+        for (int i = 0; i < quantosDados; i++) {
+            if (figuras[i].getX() == procurado.getX() && figuras[i].getY() == procurado.getY()) {
                 posicaoAtual = i;
-                achou = true;
+                return true;
             }
-        return achou;
-    }
-
-    @Override
-    public boolean lerArquivo(String nomeDoArquivo) throws Exception {
-        BufferedReader arqFiguras = new BufferedReader(
-                new FileReader(nomeDoArquivo));
-        try {
-            String linha = arqFiguras.readLine();
-            while (linha != null)
-            {
-                String[] campos = linha.split(";");
-                String tipoDaFigura = campos[0];
-                int xBase = Integer.parseInt(campos[1]);
-                int yBase = Integer.parseInt(campos[2]);
-                int corR  = Integer.parseInt(campos[3]);
-                int corG  = Integer.parseInt(campos[4]);
-                int corB  = Integer.parseInt(campos[5]);
-                Color cor = new Color(corR, corG, corB);
-                switch (tipoDaFigura)
-                {
-                    case "p" : incluirAoFinal( new Ponto(xBase,yBase, cor) ); // é ponto
-                        break;
-                    case "l" : // figura é uma linha
-                        int xFinal =Integer.parseInt(campos[6]);
-                        int yFinal =Integer.parseInt(campos[7]);
-                        incluirAoFinal( new Linha(xBase, yBase, xFinal, yFinal, cor) );
-                        break;
-                    case "c" : // figura é um círculo
-                        int raio = Integer.parseInt(campos[6]);
-                        incluirAoFinal( new Circulo(xBase, yBase, raio, cor) );
-                        break;
-                    case "o" : // figura é uma oval
-                        int raioA =Integer.parseInt(campos[6]);
-                        int raioB =Integer.parseInt(campos[7]);
-                        incluirAoFinal( new Oval(xBase, yBase, raioA, raioB, cor) );
-                        break;
-                }
-                linha = arqFiguras.readLine();
-            }
-            arqFiguras.close();
-            return true;
-        }
-        catch (IOException ioe){
-            System.out.println("Erro de leitura no arquivo");
         }
         return false;
     }
 
-    @Override
-    public void gravarArquivo(String nomeDoArquivo) throws Exception {
-
+    public boolean lerArquivo(String nomeDoArquivo) throws Exception {
+        try (BufferedReader leitor = new BufferedReader(new FileReader(nomeDoArquivo))) {
+            limpar();
+            String linha;
+            int numeroLinha = 0;
+            while ((linha = leitor.readLine()) != null) {
+                numeroLinha++;
+                if (linha.trim().isEmpty()) continue;
+                String[] c = linha.trim().split("\\s*;\\s*");
+                if (c.length < 6) throw new IOException("Formato inválido na linha " + numeroLinha);
+                String tipo = c[0].trim();
+                int x = Integer.parseInt(c[1].trim()), y = Integer.parseInt(c[2].trim());
+                Color cor = new Color(Integer.parseInt(c[3].trim()), Integer.parseInt(c[4].trim()),
+                        Integer.parseInt(c[5].trim()));
+                switch (tipo) {
+                    case "p": incluirAoFinal(new Ponto(x, y, cor)); break;
+                    case "l": incluirAoFinal(new Linha(x, y, Integer.parseInt(c[6].trim()),
+                            Integer.parseInt(c[7].trim()), cor)); break;
+                    case "c": incluirAoFinal(new Circulo(x, y, Integer.parseInt(c[6].trim()), cor)); break;
+                    case "o": incluirAoFinal(new Oval(x, y, Integer.parseInt(c[6].trim()),
+                            Integer.parseInt(c[7].trim()), cor)); break;
+                    case "r": incluirAoFinal(new Retangulo(x, y, Integer.parseInt(c[6].trim()),
+                            Integer.parseInt(c[7].trim()), cor)); break;
+                    case "pl":
+                        ArrayList<Ponto> pontos = new ArrayList<>();
+                        for (int i = 6; i + 1 < c.length; i += 2)
+                            pontos.add(new Ponto(Integer.parseInt(c[i].trim()), Integer.parseInt(c[i + 1].trim()), cor));
+                        incluirAoFinal(new Polilinha(pontos, cor));
+                        break;
+                    default: throw new IOException("Tipo de figura desconhecido na linha " + numeroLinha + ": " + tipo);
+                }
+            }
+            return true;
+        } catch (NumberFormatException ex) {
+            throw new IOException("Há um número inválido no arquivo de figuras.", ex);
+        }
     }
 
-    @Override
-    public Ponto getDado(int posicao) throws Exception {
-        if (posicao < 0 || posicao >= quantosDados)
-            throw new Exception("Indexação inválida: "+posicao);
+    public void gravarArquivo(String nomeDoArquivo) throws Exception {
+        try (PrintWriter escritor = new PrintWriter(new BufferedWriter(new FileWriter(nomeDoArquivo)))) {
+            for (int i = 0; i < quantosDados; i++) escritor.println(figuras[i].toString());
+            if (escritor.checkError()) throw new IOException("Falha ao gravar o arquivo.");
+        }
+    }
 
+    public Ponto getDado(int posicao) throws Exception {
+        if (posicao < 0 || posicao >= quantosDados) throw new Exception("Índice inválido: " + posicao);
         return figuras[posicao];
     }
 
-    @Override
     public void setDado(Ponto novoDado, int posicao) throws Exception {
-        if (posicao < 0 || posicao > quantosDados)
-            throw new Exception("Indexação inválida: "+posicao);
-
+        if (posicao < 0 || posicao >= quantosDados) throw new Exception("Índice inválido: " + posicao);
         figuras[posicao] = novoDado;
     }
 
-    @Override
-    public int getPosicaoAtual() {
-        return posicaoAtual;
-    }
-
-    @Override
-    public void irParaOInicio() {
-        posicaoAtual = 0;
-    }
-
-    @Override
-    public void irParaOFim() {
-        posicaoAtual = quantosDados;
-    }
-
-    @Override
-    public void irParaOProximo() {
-        if (posicaoAtual < quantosDados-1)
-            posicaoAtual++;
-    }
-
-    @Override
-    public void irParaOAnterior() {
-        if (posicaoAtual > 0)
-            posicaoAtual--;
-    }
-
-    @Override
+    public int getPosicaoAtual() { return posicaoAtual; }
+    public void irParaOInicio() { posicaoAtual = quantosDados == 0 ? -1 : 0; }
+    public void irParaOFim() { posicaoAtual = quantosDados - 1; }
+    public void irParaOProximo() { if (posicaoAtual < quantosDados - 1) posicaoAtual++; }
+    public void irParaOAnterior() { if (posicaoAtual > 0) posicaoAtual--; }
     public ArrayList<Ponto> getDados() {
-        var osDados = new ArrayList<Ponto>(); // vetor de pontos
-        for (int i=0; i< quantosDados; i++)
-            osDados.add(figuras[i]);
-        return osDados;
+        ArrayList<Ponto> dados = new ArrayList<>();
+        for (int i = 0; i < quantosDados; i++) dados.add(figuras[i]);
+        return dados;
     }
-
-    // nada será feito se a aplicação chamar os métodos abaixo
-    @Override
-    public void incluirEmOrdem(int posicaoDeInclusao, Ponto novo) throws Exception {
-        // não incluiremos em ordem
+    public void incluirEmOrdem(int posicao, Ponto novo) throws Exception {
+        if (posicao < 0 || posicao > quantosDados) throw new Exception("Índice inválido.");
+        if (quantosDados >= tamanhoFisico) expandirVetor();
+        for (int i = quantosDados; i > posicao; i--) figuras[i] = figuras[i - 1];
+        figuras[posicao] = novo;
+        quantosDados++;
     }
-
-    @Override
-    public int getOndeEsta() {
-        return 0;
-    }
-    @Override
-    public void ordenar() {  }
+    public int getOndeEsta() { return posicaoAtual; }
+    public void ordenar() { }
 }
