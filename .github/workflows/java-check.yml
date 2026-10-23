@@ -20,4 +20,7 @@ jobs:
           java-version: '17'
       - name: Compilar fontes
         working-directory: Projeto Base
-        run: mkdir -p build && javac -encoding UTF-8 -d build src/*.java
+        run: mkdir -p build && javac -encoding UTF-8 -d build src/*.java tests/*.java
+      - name: Executar teste de fumaça
+        working-directory: Projeto Base
+        run: java -cp build VetorPontoSmokeTest
