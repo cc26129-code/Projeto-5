@@ -1,4 +1,4 @@
-import java.awt.*; // abstract windowing toolkit
+import java.awt.*;
 
 public class Ponto {
     protected int x, y;
@@ -10,54 +10,35 @@ public class Ponto {
         cor = qualCor;
     }
 
-    public int getX() {
-        return x;
-    }
+    public int getX() { return x; }
+    public int getY() { return y; }
 
     public void setX(int novoX) throws Exception {
-        if (x < 0)
-            throw new Exception("x não pode ser negativo!");
+        if (novoX < 0) throw new Exception("x não pode ser negativo!");
         x = novoX;
     }
 
-    public int getY() {
-        return y;
-    }
-
     public void setY(int novoY) throws Exception {
-        if (y < 0)
-            throw new Exception("y não pode ser negativo!");
+        if (novoY < 0) throw new Exception("y não pode ser negativo!");
         y = novoY;
     }
 
-    public void setCor(Color novaCor)
-    {
-        cor = novaCor;
+    public void setCor(Color novaCor) { cor = novaCor; }
+    public Color getCor() { return cor; }
+
+    public void deslocar(int dx, int dy) {
+        x += dx;
+        y += dy;
     }
 
-    public Color getCor()
-    {
-        return cor;
-    }
+    public void desenhar(Graphics g) { desenhar(cor, g); }
 
-    public void desenhar(Graphics g)
-    {
-        g.setColor(cor);        // define a cor de desenho na "tela"
-        g.drawLine(x, y, x, y); // desenha um único pixel na "tela"
-    }
-
-    // sobrecarga do método desenhar: mesmo nome, diferentes parâmetros
-    // é uma versão diferente do método desenhar()
-    // a aplicação pode chamar desenhar() com um único parâmetro ou
-    // chamar desenhar() com 2 parâmetros
-    public void desenhar(Color corDiferente, Graphics g) {
-        g.setColor(corDiferente);
+    public void desenhar(Color corDesenho, Graphics g) {
+        g.setColor(corDesenho);
         g.drawLine(x, y, x, y);
     }
 
-    public String toString()
-    {
-        return "p;"+x+";"+y+";"+cor.getRed()+";"+cor.getGreen()+";"+cor.getBlue();
+    public String toString() {
+        return "p;" + x + ";" + y + ";" + cor.getRed() + ";" + cor.getGreen() + ";" + cor.getBlue();
     }
-
 }
