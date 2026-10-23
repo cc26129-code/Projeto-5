@@ -1,0 +1,23 @@
+name: Verificar compilação Java
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  compilacao:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Compilar fontes
+        working-directory: Projeto Base
+        run: mkdir -p build && javac -encoding UTF-8 -d build src/*.java
