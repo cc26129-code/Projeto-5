@@ -22,6 +22,7 @@ public class VetorPonto implements ManterVetor {
     }
 
     public void incluirAoFinal(Ponto novo) {
+        if (novo == null) throw new IllegalArgumentException("A figura não pode ser nula.");
         if (quantosDados >= tamanhoFisico) expandirVetor();
         figuras[quantosDados++] = novo;
     }
@@ -30,6 +31,9 @@ public class VetorPonto implements ManterVetor {
         if (posicao < 0 || posicao >= quantosDados) throw new Exception("Índice fora dos limites.");
         for (int i = posicao; i < quantosDados - 1; i++) figuras[i] = figuras[i + 1];
         figuras[--quantosDados] = null;
+        if (quantosDados == 0) posicaoAtual = -1;
+        else if (posicaoAtual == posicao) posicaoAtual = Math.min(posicao, quantosDados - 1);
+        else if (posicaoAtual > posicao) posicaoAtual--;
     }
 
     public void limpar() {
@@ -39,51 +43,84 @@ public class VetorPonto implements ManterVetor {
     }
 
     public boolean existe(Ponto procurado) {
+        if (procurado == null) return false;
         for (int i = 0; i < quantosDados; i++) {
             if (figuras[i].getX() == procurado.getX() && figuras[i].getY() == procurado.getY()) {
                 posicaoAtual = i;
                 return true;
             }
         }
+        posicaoAtual = -1;
         return false;
     }
 
     public boolean lerArquivo(String nomeDoArquivo) throws Exception {
+        ArrayList<Ponto> carregadas = new ArrayList<>();
         try (BufferedReader leitor = new BufferedReader(new FileReader(nomeDoArquivo))) {
-            limpar();
             String linha;
             int numeroLinha = 0;
             while ((linha = leitor.readLine()) != null) {
                 numeroLinha++;
                 if (linha.trim().isEmpty()) continue;
                 String[] c = linha.trim().split("\\s*;\\s*");
-                if (c.length < 6) throw new IOException("Formato inválido na linha " + numeroLinha);
-                String tipo = c[0].trim();
-                int x = Integer.parseInt(c[1].trim()), y = Integer.parseInt(c[2].trim());
-                Color cor = new Color(Integer.parseInt(c[3].trim()), Integer.parseInt(c[4].trim()),
-                        Integer.parseInt(c[5].trim()));
-                switch (tipo) {
-                    case "p": incluirAoFinal(new Ponto(x, y, cor)); break;
-                    case "l": incluirAoFinal(new Linha(x, y, Integer.parseInt(c[6].trim()),
-                            Integer.parseInt(c[7].trim()), cor)); break;
-                    case "c": incluirAoFinal(new Circulo(x, y, Integer.parseInt(c[6].trim()), cor)); break;
-                    case "o": incluirAoFinal(new Oval(x, y, Integer.parseInt(c[6].trim()),
-                            Integer.parseInt(c[7].trim()), cor)); break;
-                    case "r": incluirAoFinal(new Retangulo(x, y, Integer.parseInt(c[6].trim()),
-                            Integer.parseInt(c[7].trim()), cor)); break;
-                    case "pl":
-                        ArrayList<Ponto> pontos = new ArrayList<>();
-                        for (int i = 6; i + 1 < c.length; i += 2)
-                            pontos.add(new Ponto(Integer.parseInt(c[i].trim()), Integer.parseInt(c[i + 1].trim()), cor));
-                        incluirAoFinal(new Polilinha(pontos, cor));
-                        break;
-                    default: throw new IOException("Tipo de figura desconhecido na linha " + numeroLinha + ": " + tipo);
+                try {
+                    if (c.length < 6) throw new IOException("Formato inválido na linha " + numeroLinha + ".");
+                    String tipo = c[0].trim();
+                    int x = inteiro(c, 1), y = inteiro(c, 2);
+                    Color cor = new Color(inteiro(c, 3), inteiro(c, 4), inteiro(c, 5));
+                    switch (tipo) {
+                        case "p":
+                            exigirCampos(c, 6, numeroLinha);
+                            carregadas.add(new Ponto(x, y, cor));
+                            break;
+                        case "l":
+                            exigirCampos(c, 8, numeroLinha);
+                            carregadas.add(new Linha(x, y, inteiro(c, 6), inteiro(c, 7), cor));
+                            break;
+                        case "c":
+                            exigirCampos(c, 7, numeroLinha);
+                            carregadas.add(new Circulo(x, y, inteiro(c, 6), cor));
+                            break;
+                        case "o":
+                            exigirCampos(c, 8, numeroLinha);
+                            carregadas.add(new Oval(x, y, inteiro(c, 6), inteiro(c, 7), cor));
+                            break;
+                        case "r":
+                            exigirCampos(c, 8, numeroLinha);
+                            carregadas.add(new Retangulo(x, y, inteiro(c, 6), inteiro(c, 7), cor));
+                            break;
+                        case "pl":
+                            if (c.length < 10 || (c.length - 6) % 2 != 0)
+                                throw new IOException("Polilinha inválida na linha " + numeroLinha + ": informe pelo menos dois pontos.");
+                            ArrayList<Ponto> pontos = new ArrayList<>();
+                            for (int i = 6; i < c.length; i += 2)
+                                pontos.add(new Ponto(inteiro(c, i), inteiro(c, i + 1), cor));
+                            carregadas.add(new Polilinha(pontos, cor));
+                            break;
+                        default:
+                            throw new IOException("Tipo de figura desconhecido na linha " + numeroLinha + ": " + tipo);
+                    }
+                } catch (NumberFormatException | IllegalArgumentException ex) {
+                    throw new IOException("Dados inválidos na linha " + numeroLinha + ".", ex);
+                } catch (ArrayIndexOutOfBoundsException ex) {
+                    throw new IOException("Faltam dados na linha " + numeroLinha + ".", ex);
                 }
             }
-            return true;
-        } catch (NumberFormatException ex) {
-            throw new IOException("Há um número inválido no arquivo de figuras.", ex);
         }
+
+        // Só substitui o desenho atual depois que o arquivo inteiro foi validado.
+        limpar();
+        for (Ponto figura : carregadas) incluirAoFinal(figura);
+        return true;
+    }
+
+    private int inteiro(String[] campos, int indice) {
+        return Integer.parseInt(campos[indice].trim());
+    }
+
+    private void exigirCampos(String[] campos, int quantidade, int linha) throws IOException {
+        if (campos.length != quantidade)
+            throw new IOException("Quantidade de campos inválida na linha " + linha + ".");
     }
 
     public void gravarArquivo(String nomeDoArquivo) throws Exception {
@@ -100,26 +137,41 @@ public class VetorPonto implements ManterVetor {
 
     public void setDado(Ponto novoDado, int posicao) throws Exception {
         if (posicao < 0 || posicao >= quantosDados) throw new Exception("Índice inválido: " + posicao);
+        if (novoDado == null) throw new IllegalArgumentException("A figura não pode ser nula.");
         figuras[posicao] = novoDado;
     }
 
     public int getPosicaoAtual() { return posicaoAtual; }
     public void irParaOInicio() { posicaoAtual = quantosDados == 0 ? -1 : 0; }
     public void irParaOFim() { posicaoAtual = quantosDados - 1; }
-    public void irParaOProximo() { if (posicaoAtual < quantosDados - 1) posicaoAtual++; }
-    public void irParaOAnterior() { if (posicaoAtual > 0) posicaoAtual--; }
+    public void irParaOProximo() {
+        if (quantosDados == 0) posicaoAtual = -1;
+        else if (posicaoAtual < quantosDados - 1) posicaoAtual++;
+    }
+    public void irParaOAnterior() {
+        if (posicaoAtual > 0) posicaoAtual--;
+        else if (quantosDados == 0) posicaoAtual = -1;
+    }
+
     public ArrayList<Ponto> getDados() {
         ArrayList<Ponto> dados = new ArrayList<>();
         for (int i = 0; i < quantosDados; i++) dados.add(figuras[i]);
         return dados;
     }
+
     public void incluirEmOrdem(int posicao, Ponto novo) throws Exception {
         if (posicao < 0 || posicao > quantosDados) throw new Exception("Índice inválido.");
+        if (novo == null) throw new IllegalArgumentException("A figura não pode ser nula.");
         if (quantosDados >= tamanhoFisico) expandirVetor();
         for (int i = quantosDados; i > posicao; i--) figuras[i] = figuras[i - 1];
         figuras[posicao] = novo;
         quantosDados++;
+        if (posicaoAtual >= posicao) posicaoAtual++;
     }
+
     public int getOndeEsta() { return posicaoAtual; }
-    public void ordenar() { }
+
+    public void ordenar() {
+        // Não é utilizada pelo editor; a interface exige o método.
+    }
 }
