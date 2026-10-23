@@ -100,7 +100,7 @@ public class VetorPonto implements ManterVetor {
                         default:
                             throw new IOException("Tipo de figura desconhecido na linha " + numeroLinha + ": " + tipo);
                     }
-                } catch (NumberFormatException | IllegalArgumentException ex) {
+                } catch (IllegalArgumentException ex) {
                     throw new IOException("Dados inválidos na linha " + numeroLinha + ".", ex);
                 } catch (ArrayIndexOutOfBoundsException ex) {
                     throw new IOException("Faltam dados na linha " + numeroLinha + ".", ex);
